@@ -90,9 +90,6 @@ for (col in hist_columns) {
 # Combine and print the histograms as a series
 marrangeGrob(histograms, nrow = 3, ncol = 3)
 ```
-```{r}
-print(colnames(df_heart))
-```
 
 So what this really tells us that is we need to convert things to factors.
 ```{r}
@@ -104,6 +101,122 @@ df_heart[,to_factor_cols] <- lapply(df_heart[,to_factor_cols], factor)
 
 
 ```{r}
+library(caret)
+# test train split
+set.seed(230)
+training.individuals <- df_heart$output %>% 
+            createDataPartition(p = 0.8, list = FALSE)
+
+train.data <- df_heart[training.individuals, ]
+test.data <- df_heart[-training.individuals, ]
+
+# training the model
+logistic_model <- glm(output ~ ., 
+                   data = train.data, family = 
+                     binomial(link="logit"))
+
+# making predictions
+logistic_predictions <- logistic_model %>% predict(test.data, type = 'response')
+logistic_predictions <- ifelse(logistic_predictions > 0.5, 1, 0)
+
+# Model accuracy
+accuracy_logistic <- mean(logistic_predictions==test.data$output)
+accuracy_logistic
 
 ```
+
+```{r, message=F}
+set.seed(230)
+library(randomForest)
+
+# training random forest model
+rf_model <- randomForest(output ~ ., 
+                   data = train.data) 
+
+# making predictions
+rf_predictions <- predict(rf_model, test.data)
+
+# getting accuracy
+confusion_matrix <- table(Predicted = rf_predictions, Actual = t(test.data$output))
+accuracy_rf <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+cat("Random Forest Accuracy: ", accuracy_rf)
+```
+
+
+```{r, message=F}
+set.seed(230)
+library(xgboost)
+
+# xgboost requires variables to be numerics
+to_numerics <- c("sex", "cp", "fbs", "restecg", "exng", "slp", "caa", "thall", "output")
+df_heart[,to_numerics] <- lapply(df_heart[,to_numerics], as.numeric)
+df_heart$output <- df_heart$output - 1
+# test train split
+set.seed(230)
+train.data <- df_heart[training.individuals, ]
+test.data <- df_heart[-training.individuals, ]
+
+training.individuals <- df_heart$output %>% 
+            createDataPartition(p = 0.8, list = FALSE)
+
+# Convert the data to a suitable format for xgboost
+train_matrix <- xgb.DMatrix(data = as.matrix(train.data[, -which(names(train.data) == "output")]),
+                            label = train.data$output)
+test_matrix <- xgb.DMatrix(data = as.matrix(test.data[, -which(names(test.data) == "output")]),
+                           label = test.data$output)
+
+# set params for xgboost model
+params <- list(
+  objective = "binary:logistic", 
+  eval_metric = "error",
+  max_depth = 6,
+  eta = 0.3,
+  min_child_weight = 1,
+  subsample = 1,
+  colsample_bytree = 1
+)
+
+# training the model
+xgb_model <- xgb.train(
+  params = params,
+  data = train_matrix,
+  nrounds = 100, # number of boosting rounds
+  watchlist = list(train = train_matrix, test = test_matrix),
+  early_stopping_rounds = 10, # stop if no improvement in test set performance after 10 rounds
+  print_every_n = 10 # print evaluation metric every 10 rounds
+)
+
+# making predictions
+xg_predictions <- predict(xgb_model, test_matrix)
+
+# getting accuracy
+predicted_labels <- ifelse(xg_predictions > 0.5, 1, 0)
+accuracy_xg <- mean(predicted_labels == test.data$output)
+print(accuracy_xg)
+```
+
+# naive bayes
+```{r}
+# Naive Bayes
+library(e1071)
+library(lattice)
+set.seed(254)
+
+train.data$output <- as.factor(train.data$output)
+test.data$output <- as.factor(test.data$output)
+
+train_control <- trainControl(method="repeatedcv", number=10, repeats=3)
+
+nb_model <- train(output~., data=train.data, trControl=train_control, 
+                  method="naive_bayes")
+
+nb_predictions <- nb_model %>% predict(test.data[, -which(names(test.data) == "output")])
+accuracy_nb <- mean(nb_predictions == test.data$output)
+print(accuracy_nb)
+```
+
+
+
+
+
 
