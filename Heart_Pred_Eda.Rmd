@@ -1,0 +1,38 @@
+---
+title: "Heart Attack Predict"
+author: "Tim Tantivilaisin"
+date: "2023-06-14"
+output: pdf_document
+---
+```{r setup, message = FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+# loading in data
+setwd('/Users/timtan/Desktop/Git Portfolio/Heart_Pred/')
+df_heart <- read.csv("data/heart.csv")
+```
+
+```{r}
+print(colnames(df_heart))
+```
+
+
+```{r}
+# age
+ggplot(data = df_heart, aes(x = age)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  labs(title = "Age Histogram", x = "Age", y = "Frequency")
+```
+```{r}
+ggplot(data=df_heart, aes(x=factor(sex))) +
+  geom_bar(fill = "steelblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_discrete(labels = c("female", "male")) +
+  labs(title = "Sex Histogram", x = "Sex", y = "Frequency")
+```
+
+
