@@ -190,7 +190,7 @@ xgb_model <- xgb.train(
 xg_predictions <- predict(xgb_model, test_matrix)
 
 # getting accuracy
-predicted_labels <- ifelse(xg_predictions > 0.5, 1, 0)
+xg_predictions <- ifelse(xg_predictions > 0.5, 1, 0)
 accuracy_xg <- mean(predicted_labels == test.data$output)
 print(accuracy_xg)
 ```
@@ -215,8 +215,61 @@ accuracy_nb <- mean(nb_predictions == test.data$output)
 print(accuracy_nb)
 ```
 
+# svm
+```{r}
+# Set the control parameters for cross-validation
+ctrl <- trainControl(method = "repeatedcv", 
+                     number = 10, 
+                     repeats = 3)
+
+# Train the SVM model with RBF kernel using cross-validation
+svm_model <- train(output ~ ., 
+                   data = train.data, 
+                   method = "svmRadial", 
+                   trControl = ctrl)
+
+# Make predictions using the trained model
+svm_predictions <- svm_model %>% predict(newdata = test.data)
+
+# predictions and accuracy
+accuracy_svm <- mean(svm_predictions == test.data$output)
+print(accuracy_svm)
+```
 
 
+# starting ensemble
+```{r}
+# data cleaning
+nb_predictions <- as.numeric(nb_predictions) - 1
+rf_predictions <- as.numeric(rf_predictions) - 1
+svm_predictions <- as.numeric(svm_predictions) - 1
+ensemble_df <- cbind(logistic_predictions, nb_predictions, rf_predictions, svm_predictions, xg_predictions)
+
+```
+
+```{r}
+# for mode function
+library(modeest)
+
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+# getting rowise mode
+ensemble_vote <- apply(ensemble_df, 1, getmode)
+ensemble_df <- data.frame(cbind(ensemble_df, ensemble_vote))
+
+# predictions and accuracy
+accuracy_ensemble <- mean(ensemble_df$ensemble_vote == test.data$output)
+print(accuracy_ensemble)
+```
 
 
+```{r}
+ensemble_with_answers <- data.frame(ensemble_df, test.data$output)
+```
+
+
+So overall achieved 87% accuracy with this seed.
 
