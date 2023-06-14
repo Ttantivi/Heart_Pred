@@ -7,6 +7,8 @@ output: pdf_document
 ```{r setup, message = FALSE}
 library(dplyr)
 library(ggplot2)
+
+library(gridExtra) # for marrangeGrob
 ```
 
 
@@ -28,11 +30,80 @@ ggplot(data = df_heart, aes(x = age)) +
   labs(title = "Age Histogram", x = "Age", y = "Frequency")
 ```
 ```{r}
+# sex
 ggplot(data=df_heart, aes(x=factor(sex))) +
   geom_bar(fill = "steelblue", color = "black") +
   geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
   scale_x_discrete(labels = c("female", "male")) +
   labs(title = "Sex Histogram", x = "Sex", y = "Frequency")
+
+# chest pain
+ggplot(data=df_heart, aes(x=factor(cp))) +
+  geom_bar(fill = "steelblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_discrete(labels = c("typical angina", "atypical angina", "non-anginal pain", "asymptomatic")) +
+  labs(title = "Chest Pain Histogram", x = "Chest Pain Type", y = "Frequency")
+
+# exng
+ggplot(data=df_heart, aes(x=factor(exng))) +
+  geom_bar(fill = "steelblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_discrete(labels = c("No", "Yes")) +
+  labs(title = "Exercise Induced Angina Histogram", x = "EXIA Type", y = "Frequency")
+
+# caa, or number of blood vessels
+ggplot(data=df_heart, aes(x=factor(caa))) +
+  geom_bar(fill = "steelblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  #scale_x_discrete(labels = c("0 Vessels Blocked", "1 Vessels Blocked", "2 Vessels Blocked", "3 Vessels Blocked")) +
+  labs(title = "Number of Major Vessels Blocked Histogram", x = "Number Blood Vessels Blocked", y = "Frequency")
+
+# fbs, fasting blood sugar > 120 mg/dl
+ggplot(data=df_heart, aes(x=factor(fbs))) +
+  geom_bar(fill = "steelblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_discrete(labels = c("< 120 mg/dl", "> 120 mg/dl")) +
+  labs(title = "Fasting Blood Sugar > 120 mg/dl Histogram", x = "Fasting Blood Sugar", y = "Frequency")
+
+# restecg, resting electrocardiographic results
+ggplot(data=df_heart, aes(x=factor(restecg))) +
+  geom_bar(fill = "steelblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_discrete(labels = c("Normal", "Having ST-T wave abnormality", " showing probable or definite left ventricular hypertrophy")) +
+  labs(title = "Resting Electrocardiographic Results", x = "Results", y = "Frequency")
 ```
 
+```{r}
+hist_columns <- c("age", "trtbps", "chol", "thalachh", "oldpeak", "slp", "thall")
+
+histograms <- list()
+
+# Create histograms for each column using ggplot2
+for (col in hist_columns) {
+  hist_plot <- ggplot(data = df_heart, aes(x = .data[[col]])) +
+    geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+    labs(title = paste("Histogram of", col), x = col, y = "Frequency")
+  
+  histograms[[col]] <- hist_plot
+}
+
+# Combine and print the histograms as a series
+marrangeGrob(histograms, nrow = 3, ncol = 3)
+```
+```{r}
+print(colnames(df_heart))
+```
+
+So what this really tells us that is we need to convert things to factors.
+```{r}
+# turning categorical variables to categories
+to_factor_cols <- c("sex", "cp", "fbs", "restecg", "exng", "slp", "caa", "thall", "output")
+
+df_heart[,to_factor_cols] <- lapply(df_heart[,to_factor_cols], factor)
+```
+
+
+```{r}
+
+```
 
